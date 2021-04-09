@@ -4,7 +4,11 @@ TaskManager::TaskManager()
 {
     max_tasks_avaliable = std::thread::hardware_concurrency() - 1;
     for(size_t i = 0; i < max_tasks_avaliable; i++)
-        free_tasks.emplace_back(std::make_shared<Task>());
+    {
+        auto pt = std::make_shared<Task>();
+        pt->subscribe(this);
+        free_tasks.emplace_back(pt);
+    }
 }
 
 TaskManager::~TaskManager()
