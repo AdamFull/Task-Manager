@@ -65,7 +65,6 @@ void Task::unsubscribe(IObserver *observer)
 
 void Task::notify()
 {
-    (this);
     for(auto it : observers)
         it->update(shared_from_this());
 }

@@ -24,7 +24,7 @@ void TaskManager::add_task(worker_function func, merge_data *data)
     {
         free_tasks.front()->update(func, data);
         working_tasks.emplace_back(free_tasks.front());
-        free_tasks.front() = nullptr;
+        free_tasks.erase(free_tasks.begin());
         return;
     }
     queued.emplace(func, data);
