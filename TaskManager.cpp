@@ -3,6 +3,7 @@
 TaskManager::TaskManager()
 {
     max_tasks_avaliable = std::thread::hardware_concurrency() - 1;
+    working_tasks.reserve(max_tasks_avaliable);
     for(size_t i = 0; i < max_tasks_avaliable; i++)
     {
         auto pt = std::make_shared<Task>();
@@ -23,7 +24,7 @@ void TaskManager::add_task(worker_function func, merge_data *data)
     {
         free_tasks.front()->update(func, data);
         working_tasks.emplace_back(free_tasks.front());
-        free_tasks.erase(free_tasks.begin());
+        free_tasks.front() = nullptr;
         return;
     }
     queued.emplace(func, data);
