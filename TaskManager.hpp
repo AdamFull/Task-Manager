@@ -3,18 +3,28 @@
 #include <vector>
 #include <queue>
 
-class TaskManager : public IObserver
+class TaskManager : public ISubscriber
 {
-public:
+private:
     TaskManager();
     ~TaskManager();
 
+    static std::atomic<TaskManager*> instance;
+    static std::mutex mutex_;
+public:
+    TaskManager(TaskManager &other) = delete;
+    
+
     void add_task(worker_function func, merge_data* data);
+    void kill_all();
     bool is_all_tasks_done();
     void wait();
     size_t tasks_number();
 
     void update(std::shared_ptr<Task> task) override;
+
+    static TaskManager *GetInstance();
+    TaskManager& operator=(const TaskManager&)= delete;
 
 private:
     size_t max_tasks_avaliable;

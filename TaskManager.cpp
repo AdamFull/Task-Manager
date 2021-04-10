@@ -1,9 +1,14 @@
 #include "TaskManager.hpp"
+#include <thread>
+#include <atomic>
+
+std::atomic<TaskManager*> TaskManager::instance;
+std::mutex TaskManager::mutex_;
 
 TaskManager::TaskManager()
 {
     max_tasks_avaliable = std::thread::hardware_concurrency() - 1;
-    working_tasks.reserve(max_tasks_avaliable);
+    //working_tasks.reserve(max_tasks_avaliable);
     for(size_t i = 0; i < max_tasks_avaliable; i++)
     {
         auto pt = std::make_shared<Task>();
@@ -30,8 +35,19 @@ void TaskManager::add_task(worker_function func, merge_data *data)
     queued.emplace(func, data);
 }
 
+void TaskManager::kill_all()
+{
+    if(is_all_tasks_done())
+    {
+        for(auto it : free_tasks)
+            it->stop();
+    }
+}
+
 void TaskManager::update(std::shared_ptr<Task> task)
 {
+    //Samoe ebanoe mesto kotoroe lomaet vse
+    std::lock_guard<std::mutex> lock(mutex_);
     if(queued.size() > 0)
     {
         std::pair<worker_function, merge_data *> paired = queued.front();
@@ -39,8 +55,25 @@ void TaskManager::update(std::shared_ptr<Task> task)
         queued.pop();
         return;
     }
-    working_tasks.erase(std::find(working_tasks.begin(), working_tasks.end(), task));
+    auto it = std::find(working_tasks.begin(), working_tasks.end(), task);
+    working_tasks.erase(it);
     free_tasks.emplace_back(task);
+}
+
+TaskManager* TaskManager::GetInstance()
+{
+    TaskManager* taskmgr = instance.load(std::memory_order_acquire);
+    if(!taskmgr)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        taskmgr = instance.load(std::memory_order_relaxed);
+        if(!taskmgr)
+        {
+            taskmgr = new TaskManager();
+            instance.store(taskmgr, std::memory_order_release);
+        }
+    }
+    return taskmgr;
 }
 
 bool TaskManager::is_all_tasks_done()

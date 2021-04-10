@@ -8,7 +8,7 @@
 
 using worker_function = std::function<void(merge_data*)>;
 
-class Task : public ISubject
+class Task : public IDispatcher
 {
 public:
     Task();
@@ -26,8 +26,8 @@ public:
     bool is_done() { return b_is_done; }
     bool is_fully_done() { return b_is_done && !b_is_data_avaliable; }
 
-    void subscribe(IObserver *observer) override;
-    void unsubscribe(IObserver *observer) override;
+    void subscribe(ISubscriber *observer) override;
+    void unsubscribe(ISubscriber *observer) override;
     void notify() override;
 
     std::shared_ptr<Task>& operator=(const std::shared_ptr<Task>& other) = delete;
@@ -38,7 +38,8 @@ private:
 private:
     bool b_is_running,
     b_is_data_avaliable,
-    b_is_done;
+    b_is_done,
+    b_terminate;
 
     std::condition_variable cv_;
     std::mutex mutex_;
@@ -46,5 +47,5 @@ private:
     merge_data* data;
     worker_function worker_func;
 
-    std::list<IObserver*> observers;
+    std::list<ISubscriber*> observers;
 };

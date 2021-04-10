@@ -2,13 +2,13 @@
 #include <thread>
 
 Task::Task() : 
-b_is_done(false), b_is_running(true), b_is_data_avaliable(false)
+b_is_done(false), b_is_running(true), b_is_data_avaliable(false), b_terminate(false)
 {
     std::thread(&Task::start, this).detach();
 }
 
 Task::Task(const worker_function &func, merge_data *tdata) : 
-b_is_done(false), b_is_running(true), b_is_data_avaliable(false)
+b_is_done(false), b_is_running(true), b_is_data_avaliable(false), b_terminate(false)
 {
     worker_func = func;
     data = tdata;
@@ -50,15 +50,17 @@ void Task::update(const worker_function &func, merge_data *tdata)
 void Task::stop()
 {
     b_is_running = false;
+    b_terminate = true;
+    b_is_data_avaliable = false;
     cv_.notify_one();
 }
 
-void Task::subscribe(IObserver *observer)
+void Task::subscribe(ISubscriber *observer)
 {
     observers.push_back(observer);
 }
 
-void Task::unsubscribe(IObserver *observer)
+void Task::unsubscribe(ISubscriber *observer)
 {
     observers.remove(observer);
 }
@@ -75,6 +77,9 @@ void Task::start()
         {
             std::unique_lock<decltype(mutex_)> lock(mutex_);
             cv_.wait(lock, [this]{ return b_is_data_avaliable; });
+
+            if(b_terminate)
+                return;
 
             if(b_is_data_avaliable)
             {
