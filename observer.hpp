@@ -1,15 +1,15 @@
 #pragma once
 #include <memory>
 
-class Task;
+class routine;
 
 class ISubscriber {
  public:
   virtual ~ISubscriber(){};
-  virtual void update(std::shared_ptr<Task> task) = 0;
+  virtual void update(std::shared_ptr<routine> const& routine) = 0;
 };
 
-class IDispatcher : public std::enable_shared_from_this<Task> {
+class IDispatcher {
  public:
   virtual ~IDispatcher(){};
   virtual void subscribe(ISubscriber *observer) = 0;

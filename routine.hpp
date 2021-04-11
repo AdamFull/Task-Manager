@@ -1,23 +1,22 @@
 #pragma once
-#include "Containers.hpp"
-#include "Hook.hpp"
+#include "observer.hpp"
 #include <functional>
 #include <mutex>
 #include <condition_variable>
 #include <list>
 
-using worker_function = std::function<void(merge_data*)>;
+using worker_function = std::function<void(void*)>;
 
-class Task : public IDispatcher
+class routine : public IDispatcher, public std::enable_shared_from_this<routine>
 {
 public:
-    Task();
-    Task(const Task& ctask) = delete;
-    Task(const worker_function& func, merge_data* tdata);
-    ~Task();
+    routine();
+    routine(const routine& croutine) = delete;
+    routine(const worker_function& func, void* tdata);
+    ~routine();
 
-    void update(merge_data* tdata);
-    void update(const worker_function& func, merge_data* tdata);
+    void update(void* tdata);
+    void update(const worker_function& func, void* tdata);
 
     void stop();
 
@@ -30,7 +29,11 @@ public:
     void unsubscribe(ISubscriber *observer) override;
     void notify() override;
 
-    std::shared_ptr<Task>& operator=(const std::shared_ptr<Task>& other) = delete;
+    std::shared_ptr<routine>& operator=(const std::shared_ptr<routine>& other) = delete;
+    bool operator==(const routine& lhs)
+    {
+        return lhs.data == this->data;
+    }
 
 private:
     void start();
@@ -44,7 +47,7 @@ private:
     std::condition_variable cv_;
     std::mutex mutex_;
 
-    merge_data* data;
+    void* data;
     worker_function worker_func;
 
     std::list<ISubscriber*> observers;

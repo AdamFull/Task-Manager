@@ -1,7 +1,11 @@
-#include "TaskManager.hpp"
+#include "router.hpp"
+#include "data_example_block.hpp"
+#include <unistd.h>
+#include <random>
 
-void mergeBlock(merge_data* data)
+void mergeBlock(void* pdata)
 {
+    merge_data* data = static_cast<merge_data*>(pdata);
     uint8_t* src_rgba = data->pRGBABlock;
     uint8_t* src_alpha = data->pAlphaBlock;
 
@@ -12,7 +16,8 @@ void mergeBlock(merge_data* data)
             uint8_t& rAlpha1 = *(src_rgba + 3);
             uint8_t& rAlpha2 = *src_alpha;
 
-            //rAlpha1 = rAlpha2;
+            //usleep(rand()%500);
+            rAlpha1 = rAlpha2;
 
             src_rgba = src_rgba + 4;
             src_alpha = src_alpha + 4;
@@ -31,20 +36,20 @@ void mergeAlpha(size_t nWidth, size_t nHeight, size_t nBytesPerRow, size_t nThre
 		size_t blockPosition = i * nBytesPerRow * blockLine;
         size_t curBlock = (i == nThreads - 1) ? lastBlock : blockLine;
         merge_data data = {curBlock, nBytesPerRow, pRGBABuffer + blockPosition, pAlphaBuffer + blockPosition};
-        TaskManager::GetInstance()->add_task(mergeBlock, &data);
+        router::GetInstance()->add_routine(mergeBlock, &data);
 	}
 
-    while(!TaskManager::GetInstance()->is_all_tasks_done());
+    while(!router::GetInstance()->is_all_routines_done());
 }
 
 int main()
 {
-    TaskManager::GetInstance();
-    uint8_t* test1 = (uint8_t*)calloc(150*200, sizeof(uint8_t));
-    uint8_t* test2 = (uint8_t*)calloc(150*200, sizeof(uint8_t));
+    router::GetInstance();
+    uint8_t* test1 = (uint8_t*)calloc(1500*200, sizeof(uint8_t));
+    uint8_t* test2 = (uint8_t*)calloc(1500*200, sizeof(uint8_t));
+    
+    mergeAlpha(1500, 500, 150, 30, test1, test2);
+    mergeAlpha(1500, 500, 150, 300, test1, test2);
 
-    mergeAlpha(150, 500, 150, 6, test1, test2);
-    mergeAlpha(150, 500, 150, 3, test1, test2);
-
-    TaskManager::GetInstance()->kill_all();
+    router::GetInstance()->kill_all();
 }

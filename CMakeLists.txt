@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(TaskManager CXX)
+project(router CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -12,6 +12,6 @@ endif()
 find_package (Threads REQUIRED)
 
 file(GLOB CPP_FILES *.cpp *.c *.hpp)
-add_executable(TaskManager ${CPP_FILES})
+add_executable(router ${CPP_FILES})
 
-target_link_libraries(TaskManager Threads::Threads)
+target_link_libraries(router Threads::Threads)
