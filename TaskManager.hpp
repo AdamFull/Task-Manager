@@ -2,6 +2,7 @@
 #include "Task.hpp"
 #include <vector>
 #include <queue>
+#include "Semaphore.hpp"
 
 class TaskManager : public ISubscriber
 {
@@ -10,7 +11,8 @@ private:
     ~TaskManager();
 
     static std::atomic<TaskManager*> instance;
-    static std::mutex mutex_;
+    static std::mutex imutex_;
+    Semaphore sem;
 public:
     TaskManager(TaskManager &other) = delete;
     

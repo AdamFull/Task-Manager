@@ -2,12 +2,19 @@
 #include <thread>
 #include <atomic>
 
+//TODO: 
+//shared_ptr problem
+//observer problem
+//deadlock problem
+//ntdll problem
+
 std::atomic<TaskManager*> TaskManager::instance;
-std::mutex TaskManager::mutex_;
+std::mutex TaskManager::imutex_;
 
 TaskManager::TaskManager()
 {
     max_tasks_avaliable = std::thread::hardware_concurrency() - 1;
+    //sem = new Semaphore(2);
     //working_tasks.reserve(max_tasks_avaliable);
     for(size_t i = 0; i < max_tasks_avaliable; i++)
     {
@@ -47,17 +54,20 @@ void TaskManager::kill_all()
 void TaskManager::update(std::shared_ptr<Task> task)
 {
     //Samoe ebanoe mesto kotoroe lomaet vse
-    std::lock_guard<std::mutex> lock(mutex_);
+    sem.notify(2);
     if(queued.size() > 0)
     {
+        
         std::pair<worker_function, merge_data *> paired = queued.front();
         task->update(paired.first, paired.second);
         queued.pop();
         return;
     }
+
     auto it = std::find(working_tasks.begin(), working_tasks.end(), task);
     working_tasks.erase(it);
     free_tasks.emplace_back(task);
+    sem.wait(2);
 }
 
 TaskManager* TaskManager::GetInstance()
@@ -65,7 +75,7 @@ TaskManager* TaskManager::GetInstance()
     TaskManager* taskmgr = instance.load(std::memory_order_acquire);
     if(!taskmgr)
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(imutex_);
         taskmgr = instance.load(std::memory_order_relaxed);
         if(!taskmgr)
         {
