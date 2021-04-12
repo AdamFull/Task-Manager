@@ -24,7 +24,7 @@ public:
 
     void update(std::shared_ptr<routine> const& routine) override;
 
-    static router *GetInstance();
+    static router *get_instance();
     router& operator=(const router&)= delete;
 
 private:

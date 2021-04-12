@@ -1,6 +1,7 @@
 #include "router.hpp"
 #include "data_example_block.hpp"
-#include <unistd.h>
+//#include <unistd.h>
+#include <iostream>
 #include <random>
 
 void mergeBlock(void* pdata)
@@ -36,20 +37,23 @@ void mergeAlpha(size_t nWidth, size_t nHeight, size_t nBytesPerRow, size_t nThre
 		size_t blockPosition = i * nBytesPerRow * blockLine;
         size_t curBlock = (i == nThreads - 1) ? lastBlock : blockLine;
         merge_data data = {curBlock, nBytesPerRow, pRGBABuffer + blockPosition, pAlphaBuffer + blockPosition};
-        router::GetInstance()->add_routine(mergeBlock, &data);
+        router::get_instance()->add_routine(mergeBlock, &data);
 	}
 
-    while(!router::GetInstance()->is_all_routines_done());
+    router::get_instance()->wait();
 }
 
 int main()
 {
-    router::GetInstance();
+    router::get_instance();
     uint8_t* test1 = (uint8_t*)calloc(1500*200, sizeof(uint8_t));
     uint8_t* test2 = (uint8_t*)calloc(1500*200, sizeof(uint8_t));
     
     mergeAlpha(1500, 500, 150, 30, test1, test2);
-    mergeAlpha(1500, 500, 150, 300, test1, test2);
+    //mergeAlpha(1500, 500, 150, 5, test1, test2);
+    //mergeAlpha(1500, 500, 150, 5, test1, test2);
+    //mergeAlpha(1500, 500, 150, 5, test1, test2);
 
-    router::GetInstance()->kill_all();
+    router::get_instance()->kill_all();
+    std::cout << "All done" << std::endl;
 }

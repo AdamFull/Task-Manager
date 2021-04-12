@@ -34,7 +34,9 @@ void router::add_routine(worker_function func, void *data)
         mu.unlock();
         return;
     }
+    std::unique_lock<std::mutex> mu(omutex_);
     queued.emplace(func, data);
+    mu.unlock();
 }
 
 void router::kill_all()
@@ -72,7 +74,7 @@ void router::update(std::shared_ptr<routine> const& nroutine)
     ms.unlock();
 }
 
-router* router::GetInstance()
+router* router::get_instance()
 {
     router* routinemgr = instance.load(std::memory_order_acquire);
     if(!routinemgr)
@@ -95,7 +97,7 @@ bool router::is_all_routines_done()
 
 void router::wait()
 {
-    while(!is_all_routines_done());
+    while(!is_all_routines_done() && !queued.empty());
 }
 
 size_t router::routines_number()
