@@ -7,7 +7,7 @@ std::mutex router::imutex_;
 
 router::router()
 {
-    max_routines_avaliable = std::thread::hardware_concurrency() - 1;
+    max_routines_avaliable = std::thread::hardware_concurrency();
     for(size_t i = 0; i < max_routines_avaliable; i++)
     {
         auto pt = std::make_shared<routine>();
@@ -24,17 +24,16 @@ router::~router()
 
 void router::add_routine(worker_function func, void *data)
 {
-    if(free_routines.size() > 0)
+    std::unique_lock<std::mutex> mu(omutex_);
+    if(free_routines.size() > 0 && !free_routines.front()->is_data_avaliable())
     {
-        //ресурс уже удалился из рабочих задач и не успел снова попасть во free_routines
-        std::unique_lock<std::mutex> mu(omutex_);
         free_routines.front()->update(func, data);
         working_routines.emplace_back(free_routines.front());
         free_routines.erase(free_routines.begin());
         mu.unlock();
         return;
     }
-    std::unique_lock<std::mutex> mu(omutex_);
+
     queued.emplace(func, data);
     mu.unlock();
 }
@@ -50,9 +49,9 @@ void router::kill_all()
 
 void router::update(std::shared_ptr<routine> const& nroutine)
 {
+    std::unique_lock<std::mutex> mu(omutex_);
     if(queued.size() > 0)
     {
-        std::unique_lock<std::mutex> mu(omutex_);
         //SUPER CRITICAL PART START
         std::pair<worker_function, void*> paired = queued.front();
         nroutine->update(paired.first, paired.second);
@@ -62,7 +61,6 @@ void router::update(std::shared_ptr<routine> const& nroutine)
         return;
     }
 
-    std::unique_lock<std::mutex> ms(omutex_);
     //SUPER CRITICAL PART START
     auto it = std::find_if(working_routines.begin(), working_routines.end(), [&](std::shared_ptr<routine> const& p) 
     {
@@ -71,7 +69,7 @@ void router::update(std::shared_ptr<routine> const& nroutine)
     free_routines.emplace_back(*it);
     working_routines.erase(it);
     //SUPER CRITICAL PART END
-    ms.unlock();
+    mu.unlock();
 }
 
 router* router::get_instance()
@@ -92,6 +90,7 @@ router* router::get_instance()
 
 bool router::is_all_routines_done()
 {
+    std::lock_guard<std::mutex> mu(omutex_);
     return working_routines.empty();
 }
 
@@ -102,5 +101,6 @@ void router::wait()
 
 size_t router::routines_number()
 {
+    std::lock_guard<std::mutex> mu(omutex_);
     return working_routines.size();
 }
